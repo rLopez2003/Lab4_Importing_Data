@@ -69,7 +69,7 @@ When you read in the data give it an appropriate name for what the data represen
 ```{r}
 #| label: load-data
 
-read_table("data-raw/buoy_2024.txt")
+buoy_data <- read_table("data-raw/buoy_2024.txt")
 
 ```
 
@@ -81,6 +81,8 @@ In your data, you will notice the `#` in front of `yr` in the second row. That i
 ```{r}
 #| label: load-data-comment
 
+buoy_data <- read_table("data-raw/buoy_2024.txt", comment = "#")
+
 ```
 
 
@@ -89,6 +91,10 @@ We want to use snake_case for our variable names. Use the `janitor` package to c
 
 ```{r}
 #| label: clean-names
+
+library(janitor)
+
+buoy_data_clean <- buoy_data %>% clean_names()
 
 ```
 
@@ -99,6 +105,8 @@ Write the data to a `csv` file called `buoy_update.csv`. Be sure to write it to 
 
 ```{r}
 #| label: write-data-part-1
+
+write_csv(buoy_data_clean, "data-raw/buoy_update.csv")
 
 ```
 
@@ -115,6 +123,12 @@ Remember that now we are reading back in a data file of type `csv`. Now when you
 ```{r}
 #| label: load-data-again
 
+buoy_char <- read_csv(
+  "data-raw/buoy_update.csv",
+  col_types = cols(.default = col_character()),
+  na = c("99", "999", "9999", "999.0", "99.0")
+)
+
 ```
 
 This is great! But we created another problem. Now all of our numeric values are being treated like characters and we don't want that. There are a couple of ways to fix this. We can write and reread in the data setting the column types to `double` or we can use the `readr` parsing functions. 
@@ -123,7 +137,7 @@ Here is the code you can use to fix the data without exporting and importing aga
 
 ```{r}
 #| label: parse-double
-buoy_final <- your_file_name |> 
+buoy_final <- buoy_char |> 
   mutate(across(.cols = everything(), ~parse_double(.x)))
 ```
 
@@ -137,6 +151,25 @@ Now that are data is "analytic ready", go ahead and read in your clean data and 
 
 ```{r}
 #| label: monterey-air-temp-viz
+
+write_csv(buoy_final, "data-clean/buoy_final.csv")
+
+
+ggplot(buoy_final, aes(x = mm, y = atmp, color = as.factor(mm))) +
+  geom_jitter(alpha = 0.2, width = 0.20, size = 2) +
+  geom_smooth(aes(group = 1), color = "black", size = 1, method = "loess") +
+  scale_color_viridis_d(option = "viridis") +
+  labs(
+    title = "Monterey Bay Canyon Air Temperature in 2024",
+    x = "Month in 2024",
+    y = "Air Temperature (Celsius)",
+    caption = "Source: NOAA National Data Buoy Center",
+  ) +
+  theme_minimal() +
+  theme(
+  legend.position = "none"
+  )
+
 
 
 ```
